@@ -46,7 +46,7 @@ nrow(pl_df)
 # check n of unique tracks: 34443
 pl_df %>% summarise(n_distinct(track_id))
 tracks <- data.frame(track_id = unique(pl_df$track_id))
-write.table(pl_df, "slice_0999_all")
+write.table(pl_df, "./data/slice_0999_all")
 
 source("spotify_test.R")
 
@@ -58,16 +58,16 @@ library(spotifyr)
 #nrow(pl_df) = 67503
 # get track audio features in chunks 
 
-df1 <- read.table("df1")
-df2 <- read.table("df2")
-df3 <- read.table("df3")
-df4 <- read.table("df4")
-df5 <- read.table("df5")
-df6 <- read.table("df6")
+# df1 <- read.table("df1")
+# df2 <- read.table("df2")
+# df3 <- read.table("df3")
+# df4 <- read.table("df4")
+# df5 <- read.table("df5")
+# df6 <- read.table("df6")
 
-df_fts <- bind_rows(df1, df2, df3, df4, df5, df6)
-df_fts = unique(df_fts)
-write.table(df_fts, "ft_track_1_4000")
+# df_fts <- bind_rows(df1, df2, df3, df4, df5, df6)
+# df_fts = unique(df_fts)
+# write.table(df_fts, "ft_track_1_4000")
 
 ft_lst.n <- lst() 
 fetch_fts <- function(n, from, to) {
@@ -84,17 +84,10 @@ df_fts = fetch_fts(7, 4001, 4001)
 # n = 17844
 pl_track_fts <- inner_join(df_fts, pl_df, by = "track_id") %>% 
   select(-id, -uri, -track_href, -analysis_url, -time_signature)
-write.table(pl_track_fts, "track_fts_4000")
+
+head(pl_track_fts,2)
+write.table(pl_track_fts, "./data/track_fts_4000")
 
 
-library(RColorBrewer)
-library(hrbrthemes)
-fts_cor<- cor(pl_track_fts[,
-c("danceability","energy","loudness", "mode","speechiness","acousticness", "instrumentalness","liveness", "valence","tempo")])
-melted_fts <- reshape2::melt(fts_cor)
-head(melted_fts)
-ggplot(data = melted_fts, aes(x = Var1, y = Var2, fill = value)) + geom_tile()+
-  scale_fill_distiller(palette = "RdPu")+
-  theme_ipsum() + theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
 
-#
+

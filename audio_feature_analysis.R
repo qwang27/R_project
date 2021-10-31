@@ -1,14 +1,18 @@
-library("tidyverse")
-library("tidyr")
-library("ggplot2")
-library("data.table")
+library(tidyverse)
+library(tidyr)
+library(ggplot2)
+library(data.table)     
 library(RColorBrewer)
 library(hrbrthemes)
 
 pl_track_fts <- read.table("./data/track_fts_4000")
-
-fts_cor<- cor(pl_track_fts[,
-                           c("danceability","energy","loudness", "mode","speechiness","acousticness", "instrumentalness","liveness", "valence","tempo")])
+names(pl_track_fts) <- gsub("_",".",names(pl_track_fts))
+#Correlation Matrix of all audio features 
+pl_track_fts <- pl_track_fts %>% mutate(key = as.factor(key), 
+                                        mode = as.factor(mode))
+fts_cor<- cor(pl_track_fts[ ,c("danceability","energy","loudness", "valence",
+                               "speechiness","acousticness", "instrumentalness","liveness",
+                             "duration.ms.x","tempo")])
 melted_fts <- reshape2::melt(fts_cor)
 head(melted_fts)
 ggplot(data = melted_fts, aes(x = Var1, y = Var2, fill = value)) + geom_tile()+
@@ -30,17 +34,52 @@ ggplot(data = melted_fts, aes(x = Var1, y = Var2, fill = value)) + geom_tile()+
 #       summarise(danceability_mean = mean(danceability),
 #                 energy_mean = mean(energy))
 
-#count number of non-repeat artist in playlists
-total_artist <- pl_track_fts %>% group_by(pid,name) %>% summarise(total.n.artist = n_distinct(artist_name))
-tracks1 <-pl_track_fts %>% arrange(pid) %>% group_by(pid,name, artist_name) %>% 
-  mutate(repeat_artist = lag(artist_name)) %>% filter(!is.na(repeat_artist)) 
+#analyze the diversity of a playlist: Counting number of non-repeat artist in playlists
+library(dplyr)
+total_artist <- pl_track_fts %>% arrange(pid, name) %>% 
+  group_by(pid) %>% 
+  summarize(total.n.artist = n_distinct(artist.name))
+
+tracks1 <-pl_track_fts %>% arrange(pid) %>% 
+  group_by(pid,name, artist.name) %>% 
+  mutate(repeat.artist = lag(artist.name)) %>% filter(!is.na(repeat.artist)) 
 
 repeat_artist <- tracks1 %>% 
- group_by(pid,name) %>% summarise(repeat.n.artist = n_distinct(repeat_artist))
-n.no.repeat.artist <- full_join(total_artist, repeat_artist, by = "pid") 
+  group_by(pid,name) %>%
+  summarise(repeat.n.artist = n_distinct(repeat.artist))
+n_artist <- left_join(total_artist, repeat_artist, by = "pid") 
 # mutate(d = total.n.artist -repeat.n.artist)
-n.no.repeat.artist[is.na(n.no.repeat.artist$repeat.n.artist),]$repeat.n.artist = 0
-n.no.repeat.artist <- n.no.repeat.artist %>% mutate(d = total.n.artist -repeat.n.artist)
+n_artist[is.na(n_artist$repeat.n.artist),]$repeat.n.artist = 0
+n_artist <- n_artist %>% mutate(d = total.n.artist -repeat.n.artist)
 
+g = n_artist %>% ggplot(aes(x = d)) 
+g + geom_density() + 
+    xlab("Number of Non-repeated Tracks ") +
+    ylab("Proportion of playlists")
 
-         
+# Principal Component Analysis
+audio.pca <- prcomp(pl_track_fts[, c("danceability","energy","loudness", "valence",
+                                     "speechiness","acousticness", "instrumentalness","liveness",
+                                     "duration.ms.x","tempo")],
+                    center = TRUE, scale = TRUE)
+summary(audio.pca)
+#scree plot
+plot(audio.pca, type = "line")
+str(audio.pca)
+library(devtools)
+library(ggbiplot)
+#ggbiplot(audio.pca)
+
+autoplot(audio.pca, data = pl_track_fts,
+         loadings = TRUE, loadings.colour = "blue", loadings.label = TRUE)
+# seems danceibility, energy, loudness, valence explain most of the variations in the data
+
+audio.pca <- prcomp(~ danceability + energy + loudness + valence+speechiness +
+                      acousticness+ instrumentalness+liveness 
+                      + tempo + duration.ms.x,
+                                     data = pl_track_fts)
+summary(audio.pca)
+library(ggfortify)
+autoplot(audio.pca, data = pl_track_fts,
+         loadings = TRUE, loadings.colour = "blue", loadings.label = TRUE)
+

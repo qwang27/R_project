@@ -5,8 +5,27 @@ library("tidyr")
 library("ggplot2")
 library("data.table")
 
-json_file <- "~/NYCDSA/Intro_to_R/R_project/spotify_million_playlist_dataset/data/mpd.slice.0-999.json"
-pls <- fromJSON(paste(readLines(json_file), collapse = ""))
+setwd("~/NYCDSA/Intro_to_R/R_project")
+#read in genres_vs.csv
+#genres <- read.csv("./data/genres_v2.csv")
+
+#read in multi-genres-playlist
+file_list <- list.files(path = "./data/multi_genre_playlists")
+
+setwd("~/NYCDSA/Intro_to_R/R_project/data/multi_genre_playlists")
+
+#temp_data <- read.csv(file_list[1])
+genres_pl <- data.frame()
+for (i in 1:length(file_list)){
+  temp_data <- read.csv(file_list[i])
+  colnames(temp_data)[4] = "Subgenres"
+  temp_data$Genre <- sapply(strsplit(gsub(".csv", "", file_list[i]),"_"), function(x){x[1]})
+  genres_pl <- rbind(genres_pl, temp_data)
+}
+write.table(genres_pl, "~/NYCDSA/Intro_to_R/R_project/data/multi_genre_playlist")
+
+json_file <- "~/NYCDSA/Intro_to_R/R_project/data/spotify_million_playlist_dataset/data/mpd.slice.0-999.json"
+pls1 <- fromJSON(paste(readLines(json_file), collapse = ""))
 
 names(pls)
 class(pls$playlists)
@@ -26,6 +45,7 @@ nrow(pls$playlist)
 # class(tracks)
 # #cbind(one.Row$pid, one.Row$tracks[[1]])
 # pls_0 <- tracks %>% mutate(pid = one.Row$pid)
+
 
 # loop over rows of playlists 
 pl_df_lst = list()

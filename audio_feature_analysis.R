@@ -50,7 +50,8 @@ repeat_artist <- tracks1 %>%
 n_artist <- left_join(total_artist, repeat_artist, by = "pid") 
 # mutate(d = total.n.artist -repeat.n.artist)
 n_artist[is.na(n_artist$repeat.n.artist),]$repeat.n.artist = 0
-n_artist <- n_artist %>% mutate(d = total.n.artist -repeat.n.artist)
+n_artist_0 <- n_artist %>% mutate(d = total.n.artist -repeat.n.artist)
+write.table(n_artist_0, "./data/n_artist_0")
 
 g = n_artist %>% ggplot(aes(x = d)) 
 g + geom_density() + 
